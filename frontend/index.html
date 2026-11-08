@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BeautySchedule — Gestão de Agendamentos para Salões de Beleza</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Barra Lateral de Navegação -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">BS</div>
+                <div class="brand-text">
+                    <h1>BeautySchedule</h1>
+                    <span id="salao-badge" class="tenant-badge">Carregando salão...</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu" aria-label="Navegação Principal">
+                <button class="nav-item active" data-view="dashboard">
+                    <span class="nav-icon">&#9638;</span>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-view="agenda">
+                    <span class="nav-icon">&#128197;</span>
+                    <span>Agenda Diária</span>
+                </button>
+                <button class="nav-item" data-view="agendamentos">
+                    <span class="nav-icon">&#9200;</span>
+                    <span>Agendamentos</span>
+                </button>
+                <button class="nav-item" data-view="clientes">
+                    <span class="nav-icon">&#128100;</span>
+                    <span>Clientes</span>
+                </button>
+                <button class="nav-item" data-view="servicos">
+                    <span class="nav-icon">&#9986;</span>
+                    <span>Serviços</span>
+                </button>
+                <button class="nav-item" data-view="relatorios">
+                    <span class="nav-icon">&#128202;</span>
+                    <span>Relatórios</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="operator-card">
+                    <div class="operator-label">Operador(a) em Sessão</div>
+                    <div id="operador-nome" class="operator-name">—</div>
+                    <div id="operador-cargo" class="operator-role">Uso interno do salão</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <div class="main-wrapper">
+            <header class="topbar">
+                <div>
+                    <h2 id="view-title" class="page-title">Dashboard Operacional</h2>
+                    <p id="view-subtitle" class="page-subtitle">Visão consolidada de atendimentos, clientes e serviços do salão</p>
+                </div>
+                <div class="topbar-actions">
+                    <button id="btn-quick-agendamento" class="btn btn-primary">
+                        + Novo Agendamento
+                    </button>
+                </div>
+            </header>
+
+            <main class="content-area">
+                <!-- =========================================================
+                     1. TELA: DASHBOARD
+                ========================================================== -->
+                <section id="view-dashboard" class="view-section active">
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <span class="kpi-label">Agendamentos Ativos</span>
+                            <strong id="kpi-agendamentos-ativos" class="kpi-value">0</strong>
+                            <span id="kpi-agendamentos-total" class="kpi-meta">0 no total</span>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-label">Clientes Ativos</span>
+                            <strong id="kpi-clientes-ativos" class="kpi-value">0</strong>
+                            <span id="kpi-clientes-total" class="kpi-meta">0 cadastrados</span>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-label">Serviços no Catálogo</span>
+                            <strong id="kpi-servicos-ativos" class="kpi-value">0</strong>
+                            <span id="kpi-servicos-total" class="kpi-meta">Com duração e preço</span>
+                        </div>
+                        <div class="kpi-card highlight">
+                            <span class="kpi-label">Receita Prevista / Realizada</span>
+                            <strong id="kpi-receita-prevista" class="kpi-value">R$ 0,00</strong>
+                            <span id="kpi-receita-realizada" class="kpi-meta">Realizado: R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-columns">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Movimentação Recente da Agenda</h3>
+                                <button class="btn btn-outline btn-sm" data-goto="agenda">Ver Agenda por Data</button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Data / Hora</th>
+                                            <th>Cliente</th>
+                                            <th>Serviço</th>
+                                            <th>Origem</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-agendamentos-tbody">
+                                        <tr><td colspan="5" class="empty-row">Carregando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Horários de Funcionamento do Salão</h3>
+                            </div>
+                            <ul id="dashboard-horarios-list" class="schedule-hours-list">
+                                <li>Carregando horários...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- =========================================================
+                     2. TELA: AGENDA POR DATA
+                ========================================================== -->
+                <section id="view-agenda" class="view-section">
+                    <div class="card toolbar-card">
+                        <div class="toolbar-group">
+                            <label for="agenda-date-input">Data da Agenda:</label>
+                            <div class="date-nav">
+                                <button id="btn-agenda-prev" class="btn btn-outline btn-sm" title="Dia anterior">&larr;</button>
+                                <input type="date" id="agenda-date-input" class="form-control" />
+                                <button id="btn-agenda-next" class="btn btn-outline btn-sm" title="Próximo dia">&rarr;</button>
+                                <button id="btn-agenda-today" class="btn btn-secondary btn-sm">Hoje</button>
+                            </div>
+                        </div>
+                        <div id="agenda-expediente-banner" class="expediente-pill">
+                            Verificando expediente...
+                        </div>
+                    </div>
+
+                    <div class="kpi-grid kpi-grid-compact">
+                        <div class="kpi-card">
+                            <span class="kpi-label">Atendimentos Ativos no Dia</span>
+                            <strong id="agenda-kpi-ativos" class="kpi-value">0</strong>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-label">Confirmados / Concluídos</span>
+                            <strong id="agenda-kpi-confirmados" class="kpi-value">0</strong>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-label">Cancelados no Dia</span>
+                            <strong id="agenda-kpi-cancelados" class="kpi-value">0</strong>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-label">Previsão do Dia</span>
+                            <strong id="agenda-kpi-receita" class="kpi-value">R$ 0,00</strong>
+                        </div>
+                    </div>
+
+                    <div class="agenda-split">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Atendimentos Programados na Data</h3>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Horário</th>
+                                            <th>Cliente</th>
+                                            <th>Serviço</th>
+                                            <th>Canal</th>
+                                            <th>Valor</th>
+                                            <th>Status</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="agenda-dia-tbody">
+                                        <tr><td colspan="7" class="empty-row">Selecione uma data.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Grade de Disponibilidade (30 min)</h3>
+                            </div>
+                            <div id="agenda-slots-grid" class="slots-grid">
+                                <!-- Slots gerados dinamicamente -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- =========================================================
+                     3. TELA: AGENDAMENTOS
+                ========================================================== -->
+                <section id="view-agendamentos" class="view-section">
+                    <div class="card toolbar-card">
+                        <div class="filters-row">
+                            <div class="form-group-inline">
+                                <label for="filtro-ag-data">Data:</label>
+                                <input type="date" id="filtro-ag-data" class="form-control" />
+                            </div>
+                            <div class="form-group-inline">
+                                <label for="filtro-ag-cliente">Cliente:</label>
+                                <select id="filtro-ag-cliente" class="form-control">
+                                    <option value="">Todos os clientes</option>
+                                </select>
+                            </div>
+                            <div class="form-group-inline">
+                                <label for="filtro-ag-status">Status:</label>
+                                <select id="filtro-ag-status" class="form-control">
+                                    <option value="">Todos os status</option>
+                                    <option value="AGENDADO">AGENDADO</option>
+                                    <option value="CONFIRMADO">CONFIRMADO</option>
+                                    <option value="CONCLUIDO">CONCLUÍDO</option>
+                                    <option value="CANCELADO">CANCELADO</option>
+                                </select>
+                            </div>
+                            <button id="btn-filtrar-agendamentos" class="btn btn-secondary">Filtrar</button>
+                            <button id="btn-limpar-agendamentos" class="btn btn-outline">Limpar</button>
+                        </div>
+                        <button id="btn-novo-agendamento-view" class="btn btn-primary">+ Criar Agendamento</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Data</th>
+                                        <th>Horário (Início - Fim)</th>
+                                        <th>Cliente</th>
+                                        <th>Serviço (Duração)</th>
+                                        <th>Origem</th>
+                                        <th>Valor</th>
+                                        <th>Status</th>
+                                        <th>Ações Operacionais</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="agendamentos-tbody">
+                                    <tr><td colspan="9" class="empty-row">Carregando agendamentos...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- =========================================================
+                     4. TELA: CLIENTES
+                ========================================================== -->
+                <section id="view-clientes" class="view-section">
+                    <div class="card toolbar-card">
+                        <div class="filters-row">
+                            <input
+                                type="search"
+                                id="filtro-cliente-busca"
+                                class="form-control search-input"
+                                placeholder="Buscar por nome, telefone ou e-mail..."
+                            />
+                            <select id="filtro-cliente-status" class="form-control">
+                                <option value="">Todos (Ativos e Inativos)</option>
+                                <option value="true">Somente Ativos</option>
+                                <option value="false">Somente Inativos</option>
+                            </select>
+                            <button id="btn-buscar-clientes" class="btn btn-secondary">Buscar</button>
+                        </div>
+                        <button id="btn-novo-cliente" class="btn btn-primary">+ Cadastrar Cliente</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Nome Completo</th>
+                                        <th>Telefone</th>
+                                        <th>E-mail</th>
+                                        <th>Observações</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clientes-tbody">
+                                    <tr><td colspan="7" class="empty-row">Carregando clientes...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- =========================================================
+                     5. TELA: SERVIÇOS
+                ========================================================== -->
+                <section id="view-servicos" class="view-section">
+                    <div class="card toolbar-card">
+                        <div class="filters-row">
+                            <input
+                                type="search"
+                                id="filtro-servico-busca"
+                                class="form-control search-input"
+                                placeholder="Buscar serviço por nome ou descrição..."
+                            />
+                            <select id="filtro-servico-status" class="form-control">
+                                <option value="">Todos (Ativos e Inativos)</option>
+                                <option value="true">Somente Ativos</option>
+                                <option value="false">Somente Inativos</option>
+                            </select>
+                            <button id="btn-buscar-servicos" class="btn btn-secondary">Buscar</button>
+                        </div>
+                        <button id="btn-novo-servico" class="btn btn-primary">+ Cadastrar Serviço</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Serviço</th>
+                                        <th>Descrição</th>
+                                        <th>Duração</th>
+                                        <th>Preço (R$)</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="servicos-tbody">
+                                    <tr><td colspan="7" class="empty-row">Carregando serviços...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- =========================================================
+                     6. TELA: RELATÓRIOS
+                ========================================================== -->
+                <section id="view-relatorios" class="view-section">
+                    <div class="card toolbar-card">
+                        <div class="filters-row">
+                            <div class="form-group-inline">
+                                <label for="rel-data-inicio">De:</label>
+                                <input type="date" id="rel-data-inicio" class="form-control" />
+                            </div>
+                            <div class="form-group-inline">
+                                <label for="rel-data-fim">Até:</label>
+                                <input type="date" id="rel-data-fim" class="form-control" />
+                            </div>
+                            <button id="btn-gerar-relatorio" class="btn btn-primary">Atualizar Relatório</button>
+                            <button id="btn-limpar-relatorio" class="btn btn-outline">Todo o Período</button>
+                        </div>
+                    </div>
+
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <span class="kpi-label">Total de Agendamentos</span>
+                            <strong id="rel-total-agendamentos" class="kpi-value">0</strong>
+                            <span id="rel-taxa-cancelamento" class="kpi-meta">Taxa de cancelamento: 0%</span>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-label">Concluídos / Confirmados</span>
+                            <strong id="rel-concluidos-confirmados" class="kpi-value">0</strong>
+                            <span id="rel-pendentes" class="kpi-meta">0 aguardando confirmação</span>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-label">Faturamento Realizado</span>
+                            <strong id="rel-faturamento-realizado" class="kpi-value">R$ 0,00</strong>
+                            <span class="kpi-meta">Apenas status CONCLUÍDO</span>
+                        </div>
+                        <div class="kpi-card highlight">
+                            <span class="kpi-label">Movimentação Prevista</span>
+                            <strong id="rel-faturamento-previsto" class="kpi-value">R$ 0,00</strong>
+                            <span class="kpi-meta">Agendados + Confirmados + Concluídos</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-columns">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Desempenho por Serviço</h3>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Serviço</th>
+                                            <th>Duração</th>
+                                            <th>Ativos / Concluídos</th>
+                                            <th>Cancelados</th>
+                                            <th>Receita Estimada</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rel-servicos-tbody">
+                                        <tr><td colspan="5" class="empty-row">Sem dados.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Movimentação por Data</h3>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Total</th>
+                                            <th>Ativos</th>
+                                            <th>Concluídos</th>
+                                            <th>Cancelados</th>
+                                            <th>Movimentação (R$)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rel-movimentacao-tbody">
+                                        <tr><td colspan="6" class="empty-row">Sem dados.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 1.25rem;">
+                        <div class="card-header">
+                            <h3>Distribuição por Status e Canal de Atendimento</h3>
+                        </div>
+                        <div id="rel-canais-status-box" class="stats-pills-container"></div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         MODAL: CADASTRAR / EDITAR CLIENTE
+    ====================================================================== -->
+    <div id="modal-cliente" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-cliente-titulo">Novo Cliente</h3>
+                <button class="modal-close" data-close="modal-cliente">&times;</button>
+            </div>
+            <form id="form-cliente">
+                <input type="hidden" id="cliente-id" />
+                <div class="form-group">
+                    <label for="cliente-nome">Nome Completo *</label>
+                    <input type="text" id="cliente-nome" class="form-control" required minlength="2" maxlength="120" placeholder="Ex: Ana Beatriz Silva" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cliente-telefone">Telefone / WhatsApp *</label>
+                        <input type="text" id="cliente-telefone" class="form-control" required minlength="8" maxlength="25" placeholder="(11) 99111-2233" />
+                    </div>
+                    <div class="form-group">
+                        <label for="cliente-email">E-mail</label>
+                        <input type="email" id="cliente-email" class="form-control" maxlength="120" placeholder="cliente@email.com" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="cliente-observacoes">Observações (preferências, alergias, notas)</label>
+                    <textarea id="cliente-observacoes" class="form-control" rows="3" maxlength="1000"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" data-close="modal-cliente">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         MODAL: HISTÓRICO DE AGENDAMENTOS DO CLIENTE
+    ====================================================================== -->
+    <div id="modal-historico-cliente" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3 id="modal-historico-titulo">Histórico do Cliente</h3>
+                <button class="modal-close" data-close="modal-historico-cliente">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-historico-subtitulo" class="text-muted"></p>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Horário</th>
+                                <th>Serviço</th>
+                                <th>Canal</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Observações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historico-cliente-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-close="modal-historico-cliente">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         MODAL: CADASTRAR / EDITAR SERVIÇO
+    ====================================================================== -->
+    <div id="modal-servico" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-servico-titulo">Novo Serviço</h3>
+                <button class="modal-close" data-close="modal-servico">&times;</button>
+            </div>
+            <form id="form-servico">
+                <input type="hidden" id="servico-id" />
+                <div class="form-group">
+                    <label for="servico-nome">Nome do Serviço *</label>
+                    <input type="text" id="servico-nome" class="form-control" required minlength="2" maxlength="120" placeholder="Ex: Corte Feminino & Finalização" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="servico-duracao">Duração (minutos) *</label>
+                        <input type="number" id="servico-duracao" class="form-control" required min="5" max="480" step="5" value="60" />
+                    </div>
+                    <div class="form-group">
+                        <label for="servico-preco">Preço (R$) *</label>
+                        <input type="number" id="servico-preco" class="form-control" required min="0" step="0.01" placeholder="120.00" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="servico-descricao">Descrição detalhada</label>
+                    <textarea id="servico-descricao" class="form-control" rows="3" maxlength="255"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" data-close="modal-servico">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Serviço</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         MODAL: NOVO AGENDAMENTO
+    ====================================================================== -->
+    <div id="modal-agendamento" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Novo Agendamento</h3>
+                <button class="modal-close" data-close="modal-agendamento">&times;</button>
+            </div>
+            <form id="form-agendamento">
+                <div class="form-group">
+                    <label for="ag-cliente">Cliente (Ativo) *</label>
+                    <select id="ag-cliente" class="form-control" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="ag-servico">Serviço *</label>
+                    <select id="ag-servico" class="form-control" required></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ag-data">Data *</label>
+                        <input type="date" id="ag-data" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="ag-hora">Horário de Início *</label>
+                        <input type="time" id="ag-hora" class="form-control" required value="09:00" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="ag-canal">Canal de Recebimento *</label>
+                    <select id="ag-canal" class="form-control" required>
+                        <option value="WHATSAPP">WhatsApp</option>
+                        <option value="TELEFONE">Telefone</option>
+                        <option value="PRESENCIAL">Presencial na Recepção</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="ag-observacoes">Observações</label>
+                    <textarea id="ag-observacoes" class="form-control" rows="2" maxlength="1000"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" data-close="modal-agendamento">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Confirmar Agendamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         MODAL: REAGENDAR ATENDIMENTO
+    ====================================================================== -->
+    <div id="modal-reagendar" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Reagendar Atendimento</h3>
+                <button class="modal-close" data-close="modal-reagendar">&times;</button>
+            </div>
+            <form id="form-reagendar">
+                <input type="hidden" id="reag-id" />
+                <p id="reag-resumo" class="text-muted" style="margin-bottom: 1rem;"></p>
+                <div class="form-group">
+                    <label for="reag-servico">Serviço *</label>
+                    <select id="reag-servico" class="form-control" required></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="reag-data">Nova Data *</label>
+                        <input type="date" id="reag-data" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="reag-hora">Novo Horário de Início *</label>
+                        <input type="time" id="reag-hora" class="form-control" required />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="reag-observacoes">Observações do Reagendamento</label>
+                    <textarea id="reag-observacoes" class="form-control" rows="2" maxlength="1000"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" data-close="modal-reagendar">Voltar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Reagendamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notificações Toast -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

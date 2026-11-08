@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+================================================================================
+AVISO ACADÊMICO IMPORTANTE — PROPOSTA DE ARQUIVO XML PARA VALIDAÇÃO
+================================================================================
+Status: PENDENTE DE CONFIRMAÇÃO DO PADRÃO PELO PROFESSOR.
+
+Após inspeção completa do repositório e do histórico Git do projeto BeautySchedule,
+constatou-se que não há especificação prévia (XSD, DTD ou enunciado detalhado)
+definindo qual ferramenta ou esquema XML específico a disciplina exige
+(ex.: descritor de arquitetura de serviço SaaS, definição de firewall/porta do
+Linux via firewalld, manifesto de serviço web ou descritor de deploy).
+
+Este arquivo NÃO substitui a unidade systemd (`deploy/beautyschedule.service`)
+e NÃO é declarado como padrão definitivo sem validação docente. Ele serve como
+proposta estruturada de manifesto XML descrevendo as 3 camadas do serviço
+BeautySchedule na VM Ubuntu Linux.
+================================================================================
+-->
+<serviceConfiguration xmlns="http://beautyschedule.academico.local/schema/saas-service-v1"
+                      version="1.0"
+                      status="PROPOSAL_PENDING_PROFESSOR_VALIDATION">
+
+    <metadata>
+        <name>beautyschedule</name>
+        <displayName>BeautySchedule — SaaS de Agendamento para Salões de Beleza</displayName>
+        <course>SaaS Infrastructure</course>
+        <architecturePattern>Three-Tier Architecture (3 Camadas)</architecturePattern>
+        <multiTenancyModel>Shared Database, Shared Schema (salao_id discriminator)</multiTenancyModel>
+    </metadata>
+
+    <targetEnvironment>
+        <operatingSystem>Ubuntu Linux</operatingSystem>
+        <systemdUnitFile>/etc/systemd/system/beautyschedule.service</systemdUnitFile>
+        <workingDirectory>/opt/beautyschedule</workingDirectory>
+        <environmentFile>/opt/beautyschedule/.env</environmentFile>
+    </targetEnvironment>
+
+    <tiers>
+        <!-- Camada 1: Apresentação -->
+        <tier id="tier-1" type="presentation">
+            <technology>HTML5, CSS3, JavaScript (ES6+)</technology>
+            <entryPoint>frontend/index.html</entryPoint>
+            <servedBy>FastAPI StaticFiles / Nginx Reverse Proxy</servedBy>
+        </tier>
+
+        <!-- Camada 2: Aplicação / Regras de Negócio -->
+        <tier id="tier-2" type="application">
+            <technology>Python 3 + FastAPI + Uvicorn</technology>
+            <module>backend.app.main:app</module>
+            <runtime>
+                <executable>/opt/beautyschedule/.venv/bin/uvicorn</executable>
+                <arguments>backend.app.main:app --host 0.0.0.0 --port 8000 --workers 2</arguments>
+                <protocol>HTTP</protocol>
+                <bindAddress>0.0.0.0</bindAddress>
+                <port>8000</port>
+                <healthCheckEndpoint>/api/health</healthCheckEndpoint>
+            </runtime>
+            <restartPolicy>
+                <onFailure>restart</onFailure>
+                <delaySeconds>5</delaySeconds>
+            </restartPolicy>
+        </tier>
+
+        <!-- Camada 3: Persistência / Dados -->
+        <tier id="tier-3" type="data">
+            <technology>MySQL 8.4</technology>
+            <databaseName>beauty_schedule</databaseName>
+            <charset>utf8mb4</charset>
+            <collation>utf8mb4_0900_ai_ci</collation>
+            <port>3306</port>
+            <scripts>
+                <script order="1">database/01_create_database.sql</script>
+                <script order="2">database/02_create_tables.sql</script>
+                <script order="3">database/03_insert_data.sql</script>
+            </scripts>
+        </tier>
+    </tiers>
+
+</serviceConfiguration>

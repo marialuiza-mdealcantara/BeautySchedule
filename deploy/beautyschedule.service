@@ -1,0 +1,37 @@
+# ==============================================================================
+# Unidade systemd para execução do BeautySchedule no Ubuntu Linux
+# NOTA IMPORTANTE: Este é um arquivo de unidade systemd (.service no formato INI
+# nativo do Linux) e NÃO se confunde com o arquivo XML acadêmico.
+#
+# Instalação na VM Ubuntu:
+#   sudo cp deploy/beautyschedule.service /etc/systemd/system/beautyschedule.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable beautyschedule
+#   sudo systemctl start beautyschedule
+#   sudo systemctl status beautyschedule
+# ==============================================================================
+
+[Unit]
+Description=BeautySchedule SaaS - FastAPI Backend & Web Application
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=www-data
+WorkingDirectory=/opt/beautyschedule
+EnvironmentFile=/opt/beautyschedule/.env
+ExecStart=/opt/beautyschedule/.venv/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --workers 2
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=beautyschedule
+
+# Endurecimento básico de segurança no Linux
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

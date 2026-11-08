@@ -1,0 +1,47 @@
+# Ambientes virtuais Python
+.venv/
+venv/
+env/
+ENV/
+
+# Cache e bytecodes Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Testes e cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Variáveis de ambiente e segredos
+.env
+.env.local
+.env.*.local
+
+# Bancos de dados locais de teste/desenvolvimento
+*.db
+*.sqlite
+*.sqlite3
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs e arquivos temporários
+*.log
+logs/
+tmp/
+temp/

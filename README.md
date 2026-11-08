@@ -1,233 +1,301 @@
-# BeautySchedule
+# BeautySchedule — SaaS de Agendamento para Salões de Beleza
 
 ## 1. Visão Geral
 
-O **BeautySchedule** é um projeto acadêmico desenvolvido para a
-disciplina de **SaaS Infrastructure**. A proposta é desenvolver, de
-forma incremental, um sistema de agendamento para salões de beleza
-utilizando uma arquitetura de **3 camadas**.
+O **BeautySchedule** é um projeto acadêmico desenvolvido para a disciplina de **SaaS Infrastructure**. A proposta é oferecer um sistema de gerenciamento de agendamentos para salões de beleza estruturado em uma arquitetura de **3 camadas** (Apresentação, Aplicação/Negócio e Persistência/Dados) e modelo **SaaS Multi-Tenant**.
 
-O projeto será tratado com uma abordagem próxima de um projeto real,
-porém com **escopo acadêmico e foco no aprendizado das tecnologias e
-conceitos da disciplina**.
+O sistema é utilizado internamente pelos funcionários dos salões (recepcionistas, atendentes e gestores), que cadastram clientes, configuram o catálogo de serviços (com duração e preço) e administram os agendamentos recebidos por **telefone, WhatsApp ou presencialmente**.
 
-------------------------------------------------------------------------
+> **Nota de Escopo:** Não há agendamento público realizado diretamente pelo cliente final nesta versão; a operação é centralizada na equipe interna do salão.
 
-## 2. Problema
+---
 
-Salões de beleza podem realizar o controle de clientes e agendamentos de
-forma descentralizada, utilizando agendas físicas, mensagens ou
-diferentes ferramentas.
+## 2. Problema que Resolve
 
-Isso pode dificultar:
+Salões de beleza frequentemente realizam o controle de clientes e agendamentos de forma descentralizada, utilizando agendas físicas de papel, planilhas ou trocas de mensagens sem consolidação.
 
--   organização dos horários;
--   consulta dos agendamentos;
--   gerenciamento dos clientes;
--   alteração ou cancelamento de horários;
--   prevenção de conflitos de agenda.
+Isso dificulta:
+- Organização dos horários de atendimento conforme a duração real de cada procedimento;
+- Consulta rápida da disponibilidade da agenda por data;
+- Gerenciamento do cadastro e do histórico de clientes;
+- Reagendamento ou cancelamento de horários com atualização imediata da disponibilidade;
+- Prevenção de conflitos (choques de horário) e agendamentos fora do horário de funcionamento;
+- Visão consolidada sobre os serviços mais demandados e a movimentação da agenda.
 
-O BeautySchedule busca centralizar essas informações em uma única
-aplicação.
+O **BeautySchedule** centraliza todas essas operações em uma única aplicação web integrada a uma API REST em Python (FastAPI) e banco de dados relacional MySQL 8.4.
 
-------------------------------------------------------------------------
+---
 
-## 3. Objetivo Geral
+## 3. Objetivos do Projeto
 
-Desenvolver uma aplicação para **gerenciamento de clientes e
-agendamentos de um salão de beleza**, utilizando uma arquitetura de três
-camadas e infraestrutura baseada em máquina virtual Linux.
+### 3.1. Objetivo Geral
+Desenvolver uma aplicação web SaaS para **gerenciamento de clientes, serviços, agenda e relatórios de salões de beleza**, utilizando uma arquitetura de três camadas e infraestrutura preparada para execução em máquina virtual Ubuntu Linux com MySQL 8.4.
 
-------------------------------------------------------------------------
+### 3.2. Objetivos Específicos
+- Modelar e implementar o banco de dados relacional multi-tenant (`salao_id`) no MySQL 8.4.
+- Garantir isolamento de dados entre diferentes salões no nível da aplicação e do banco de dados.
+- Implementar gerenciamento completo de **Clientes** (cadastro, consulta, edição, inativação/reativação e histórico).
+- Implementar gerenciamento completo de **Serviços** (cadastro com duração em minutos e preço, consulta, edição e inativação/reativação).
+- Implementar gerenciamento completo de **Agendamentos** (criação, consulta, reagendamento, cancelamento, confirmação e conclusão).
+- Impedir automaticamente **conflitos de horários** e validar **horários de funcionamento** do salão por dia da semana.
+- Disponibilizar consulta de **Agenda Diária** e **Relatórios Operacionais**.
+- Assegurar qualidade por meio de testes automatizados com **Pytest**.
 
-## 4. Objetivos Específicos
+---
 
--   Modelar e implementar o banco de dados da aplicação.
--   Criar o cadastro e gerenciamento de clientes.
--   Criar o cadastro e gerenciamento de agendamentos.
--   Permitir consulta, alteração e cancelamento de agendamentos.
--   Estabelecer o relacionamento entre clientes e agendamentos.
--   Desenvolver um backend em Python para comunicação com o banco de
-    dados.
--   Utilizar MySQL como sistema de gerenciamento de banco de dados.
--   Executar a infraestrutura inicial em uma VM Linux.
--   Aplicar o conceito de arquitetura de 3 camadas.
--   Evoluir o sistema de forma incremental ao longo da disciplina.
-
-------------------------------------------------------------------------
-
-## 5. Escopo Inicial --- MVP
-
-A primeira versão do sistema terá como foco:
+## 4. Funcionalidades Implementadas
 
 ### Clientes
+- Cadastrar clientes (nome, telefone/WhatsApp, e-mail e observações).
+- Consultar e filtrar clientes por nome, telefone, e-mail e status (ativos/inativos).
+- Editar informações cadastrais.
+- Inativar e reativar clientes (exclusão lógica preservando integridade histórica).
+- Consultar histórico completo de agendamentos por cliente.
 
--   Cadastro de cliente.
--   Consulta de cliente.
--   Alteração de dados.
--   Remoção de cliente.
+### Serviços
+- Cadastrar serviços informando nome, descrição, duração em minutos e preço (`R$`).
+- Consultar e buscar serviços por nome, descrição e status.
+- Editar serviços (nome, descrição, duração e preço).
+- Inativar e reativar serviços do catálogo.
 
-### Agendamentos
+### Agendamentos e Agenda
+- Criar agendamentos vinculando cliente ativo e serviço ativo, com cálculo automático do horário de término (`hora_fim = hora_inicio + duracao_minutos`).
+- Consultar agendamentos com filtros por data, período, cliente, serviço e status (`AGENDADO`, `CONFIRMADO`, `CONCLUIDO`, `CANCELADO`).
+- Reagendar atendimentos validando disponibilidade e expediente na nova data/horário.
+- Cancelar agendamentos (liberando imediatamente o horário na agenda).
+- Consultar **Agenda por Data** com resumo do dia, status do expediente e grade visual de disponibilidade (blocos de 30 minutos).
+- **Impedir conflitos de horários** (interseção total ou parcial no mesmo salão e data).
+- **Validar horários de funcionamento** (impedindo agendamentos em dias fechados ou fora do expediente de abertura/fechamento).
 
--   Cadastro de agendamento.
--   Consulta de agendamentos.
--   Alteração de agendamento.
--   Cancelamento de agendamento.
--   Definição de data, horário, serviço e status.
+### Relatórios e Dashboard
+- Visão executiva (Dashboard) e tela dedicada de Relatórios com filtro por período.
+- Indicadores de agendamentos ativos, taxa de cancelamento, receita realizada (`CONCLUIDO`) e receita prevista (`AGENDADO + CONFIRMADO + CONCLUIDO`).
+- Desempenho por serviço (quantidade de atendimentos, cancelamentos e receita estimada).
+- Movimentação diária da agenda e distribuição por status e canal de origem (`WHATSAPP`, `TELEFONE`, `PRESENCIAL`).
 
-### Banco de Dados
+---
 
-Inicialmente serão utilizadas pelo menos duas tabelas:
+## 5. Arquitetura e Tecnologias
 
--   `clientes`
--   `agendamentos`
+O sistema segue uma **arquitetura em 3 camadas**:
 
-Relacionamento:
-
-``` text
-clientes (1) ─────────── (N) agendamentos
+```text
+┌────────────────────────────────────────────────────────┐
+│ Camada 1 — Apresentação                                │
+│ Frontend Web (HTML5, CSS3, JavaScript ES6+)            │
+│ Telas: Dashboard, Agenda, Agendamentos,                │
+│        Clientes, Serviços e Relatórios                 │
+└───────────────────────────┬────────────────────────────┘
+                            │ HTTP / JSON (REST)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│ Camada 2 — Aplicação e Regras de Negócio               │
+│ Backend Python + FastAPI                               │
+│ Routers -> Services (Regras SaaS) -> Repositories      │
+└───────────────────────────┬────────────────────────────┘
+                            │ SQL Parametrizado (PyMySQL)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│ Camada 3 — Persistência / Dados                        │
+│ MySQL 8.4 (Produção / VM Ubuntu Linux)                 │
+│ SQLite (Suporte local e execução de testes Pytest)     │
+└────────────────────────────────────────────────────────┘
 ```
 
-Um cliente pode possuir vários agendamentos.
+### Tecnologias Utilizadas
 
-------------------------------------------------------------------------
+| Componente | Tecnologia |
+|---|---|
+| **Frontend (Apresentação)** | HTML5, CSS3, JavaScript (Vanilla ES6+) |
+| **Backend (Aplicação)** | Python 3, FastAPI, Uvicorn, Pydantic v2 |
+| **Banco de Dados (Dados)** | MySQL 8.4 (`PyMySQL`) + suporte SQLite para testes locais |
+| **Testes Automatizados** | Pytest + FastAPI `TestClient` (`httpx`) |
+| **Sistema Operacional Alvo** | Ubuntu Linux (systemd + Nginx opcional) |
+| **Controle de Versão** | Git e GitHub |
 
-## 6. Regras de Negócio Iniciais
+---
 
-1.  Todo agendamento deve estar associado a um cliente existente.
-2.  Cliente deve possuir, no mínimo, nome e telefone.
-3.  Todo agendamento deve possuir data, horário, serviço e status.
-4.  Um agendamento poderá possuir os status:
-    -   `AGENDADO`
-    -   `CONFIRMADO`
-    -   `CONCLUÍDO`
-    -   `CANCELADO`
-5.  O sistema deverá evoluir para impedir conflitos de horário.
+## 6. Estrutura de Diretórios
 
-------------------------------------------------------------------------
-
-## 7. Arquitetura
-
-O sistema seguirá uma arquitetura de três camadas:
-
-``` text
-┌─────────────────────────────┐
-│ Camada 1 — Apresentação     │
-│ Frontend                    │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│ Camada 2 — Aplicação        │
-│ Backend / API               │
-│ Python                      │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│ Camada 3 — Dados            │
-│ MySQL                       │
-└─────────────────────────────┘
-               │
-               ▼
-          VM Linux
+```text
+BeautySchedule/
+├── backend/
+│   ├── app/
+│   │   ├── repositories/          # Camada de Persistência (SQL isolado por salao_id)
+│   │   │   ├── agendamento_repository.py
+│   │   │   ├── cliente_repository.py
+│   │   │   ├── salao_repository.py
+│   │   │   └── servico_repository.py
+│   │   ├── routers/               # Controladores REST FastAPI
+│   │   │   ├── agenda.py
+│   │   │   ├── agendamentos.py
+│   │   │   ├── clientes.py
+│   │   │   ├── relatorios.py
+│   │   │   ├── salao.py
+│   │   │   └── servicos.py
+│   │   ├── services/              # Camada de Regras de Negócio
+│   │   │   ├── agendamento_service.py
+│   │   │   ├── cliente_service.py
+│   │   │   ├── relatorio_service.py
+│   │   │   └── servico_service.py
+│   │   ├── config.py              # Carregamento de variáveis de ambiente (.env)
+│   │   ├── database.py            # Conexão MySQL 8.4 e SQLite local/teste
+│   │   ├── dependencies.py        # Resolução segura de Tenant (salao_id no servidor)
+│   │   ├── exceptions.py          # Exceções de domínio
+│   │   ├── main.py                # Aplicação FastAPI e montagem do Frontend
+│   │   └── schemas.py             # Contratos e validações Pydantic
+│   ├── tests/                     # Suíte de testes automatizados (Pytest)
+│   │   ├── conftest.py
+│   │   ├── test_agendamentos.py
+│   │   ├── test_api_health.py
+│   │   ├── test_clientes.py
+│   │   ├── test_relatorios_e_agenda.py
+│   │   └── test_servicos.py
+│   └── requirements.txt
+├── frontend/
+│   ├── css/
+│   │   └── styles.css
+│   ├── js/
+│   │   ├── api.js
+│   │   └── app.js
+│   └── index.html
+├── database/
+│   ├── 01_create_database.sql     # Criação do schema MySQL 8.4 (utf8mb4)
+│   ├── 02_create_tables.sql       # Tabelas, PKs, FKs compostas, CHECKs e índices
+│   └── 03_insert_data.sql         # Dados fictícios de demonstração multi-salão
+├── deploy/
+│   ├── beautyschedule.service     # Unidade systemd para Ubuntu Linux
+│   ├── beautyschedule-service-proposal.xml # Proposta XML para validação docente
+│   ├── nginx-beautyschedule.conf  # Configuração de proxy reverso Nginx
+│   └── setup_ubuntu.sh            # Script não-destrutivo de preparação na VM Ubuntu
+├── docs/
+│   ├── api_endpoints.md
+│   ├── arquitetura_e_modelo_dados.md
+│   └── implantacao_ubuntu_e_xml.md
+├── .env.example
+├── .gitignore
+├── pytest.ini
+└── README.md
 ```
 
-### Tecnologias definidas
+---
 
-  Componente       Tecnologia
-  ---------------- ------------
-  Infraestrutura   VM Linux
-  Banco de dados   MySQL
-  Backend          Python
-  Arquitetura      3 camadas
+## 7. Modelo de Dados e Conceito SaaS Multi-Tenant
 
-O framework do backend poderá ser definido durante a implementação,
-conforme os requisitos da disciplina.
+O modelo relacional MySQL 8.4 foi projetado para atender **múltiplos salões na mesma aplicação**, contemplando seis entidades principais:
 
-------------------------------------------------------------------------
+1. `saloes`: Cadastro dos salões de beleza (tenants do SaaS).
+2. `usuarios`: Funcionários/operadores vinculados a um `salao_id`.
+3. `clientes`: Clientes atendidos por cada salão (`salao_id`).
+4. `servicos`: Catálogo de procedimentos com `duracao_minutos` e `preco` (`salao_id`).
+5. `horarios_funcionamento`: Regras de abertura e fechamento por dia da semana (`0 = Segunda` a `6 = Domingo`) para cada `salao_id`.
+6. `agendamentos`: Registros de atendimento contendo `salao_id`, `cliente_id`, `servico_id`, `usuario_id`, `data`, `hora_inicio`, `hora_fim`, `status`, `canal_origem`, `observacoes` e `valor_cobrado`.
 
-## 8. Banco de Dados Inicial
+### Garantia de Isolamento SaaS
+- **No Banco de Dados**: Chaves estrangeiras compostas (`FOREIGN KEY (cliente_id, salao_id) REFERENCES clientes (id, salao_id)`, etc.) garantem que um agendamento de um salão jamais possa ser associado a clientes, serviços ou usuários de outro salão.
+- **No Backend**: O `salao_id` é resolvido exclusivamente no servidor (`get_tenant_context`) e **nunca é aceito do corpo da requisição enviado pelo frontend** (`extra="forbid"` nos schemas Pydantic).
 
-### `clientes`
+---
 
-  Campo             Tipo       Descrição
-  ----------------- ---------- --------------------------
-  `id`              INT        Identificador do cliente
-  `nome`            VARCHAR    Nome do cliente
-  `telefone`        VARCHAR    Telefone
-  `email`           VARCHAR    E-mail
-  `data_cadastro`   DATETIME   Data do cadastro
+## 8. O que NÃO faz parte do MVP
 
-### `agendamentos`
+Conforme escopo definido para a disciplina, não fazem parte desta versão:
+- Agendamento público aberto ao cliente final;
+- Processamento de pagamentos online ou emissão de nota fiscal;
+- Integração automatizada com API externa do WhatsApp ou Google Calendar;
+- Aplicativo mobile nativo ou módulos de inteligência artificial.
 
-  Campo          Tipo      Descrição
-  -------------- --------- ------------------------------
-  `id`           INT       Identificador do agendamento
-  `cliente_id`   INT       Cliente relacionado
-  `servico`      VARCHAR   Serviço agendado
-  `data`         DATE      Data do atendimento
-  `horario`      TIME      Horário
-  `status`       VARCHAR   Status do agendamento
+---
 
-------------------------------------------------------------------------
+## 9. Pré-requisitos e Configuração do Ambiente
 
-## 9. O que NÃO faz parte do MVP
+### Pré-requisitos
+- **Python** 3.10 ou superior
+- **MySQL** 8.4 (para o ambiente de produção/VM Ubuntu)
+- **Git**
 
-Para manter o projeto dentro de um escopo adequado à disciplina,
-inicialmente não serão implementados:
+### Configuração das Variáveis de Ambiente
+1. Copie o arquivo `.env.example` para `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+2. Para rodar **localmente de imediato** (sem precisar de um servidor MySQL local ativo), defina `DB_ENGINE=sqlite` no `.env` (ou mantenha o padrão local). O sistema criará e populará automaticamente um banco local de demonstração.
+3. Na **VM Ubuntu Linux com MySQL 8.4**, configure no `.env`:
+   ```env
+   APP_ENV=production
+   DB_ENGINE=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_NAME=beauty_schedule
+   DB_USER=beauty_user
+   DB_PASSWORD=SUA_SENHA_SEGURA
+   DEFAULT_SALAO_ID=1
+   DEFAULT_USUARIO_ID=1
+   ```
 
--   pagamentos;
--   integração com WhatsApp;
--   integração com Google Calendar;
--   emissão de nota fiscal;
--   sistema financeiro;
--   aplicativo mobile;
--   inteligência artificial;
--   integrações externas.
+---
 
-Essas funcionalidades podem ser consideradas como possíveis evoluções
-futuras.
+## 10. Como Executar Localmente
 
-------------------------------------------------------------------------
-
-## 10. Objetivo da Etapa Atual
-
-A etapa atual tem como objetivo:
-
-1.  Definir a aplicação.
-2.  Levantar o escopo inicial.
-3.  Definir os objetivos do projeto.
-4.  Modelar o banco de dados.
-5.  Criar pelo menos duas tabelas.
-6.  Criar o script SQL.
-7.  Operacionalizar o banco de dados na VM Linux.
-8.  Inserir dados de teste para demonstrar o funcionamento inicial.
-
-------------------------------------------------------------------------
-
-## 11. Evolução Esperada
-
-O projeto será desenvolvido de forma incremental:
-
-``` text
-Definição do escopo
-        ↓
-Modelagem do banco
-        ↓
-MySQL na VM Linux
-        ↓
-Backend Python
-        ↓
-API
-        ↓
-Frontend
-        ↓
-Integração das 3 camadas
-        ↓
-Evolução do SaaS
+### No Windows (PowerShell)
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r backend/requirements.txt
+uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-O objetivo não é construir todas as funcionalidades de uma vez, mas
-evoluir o sistema conforme os conteúdos da disciplina forem
-apresentados.
+### No Linux (Ubuntu)
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Acesse no navegador:
+- **Interface Web Completa**: `http://127.0.0.1:8000/`
+- **Documentação Interativa da API (Swagger)**: `http://127.0.0.1:8000/docs`
+
+---
+
+## 11. Como Executar os Testes Automatizados
+
+A suíte de testes utiliza **Pytest** com banco temporário isolado por teste, validando clientes, serviços, agendamentos, bloqueio de conflitos de horários, validação de expediente, reagendamento, cancelamento, relatórios e isolamento SaaS:
+
+```bash
+pytest -v
+```
+
+---
+
+## 12. Como Configurar o MySQL 8.4 e Implantar no Ubuntu Linux
+
+### 12.1. Configuração Controlada do MySQL 8.4 na VM Ubuntu
+Após inspecionar os bancos existentes na VM (`sudo mysql -u root -p -e "SHOW DATABASES;"`), execute os scripts SQL na ordem:
+
+```bash
+mysql -u root -p < database/01_create_database.sql
+mysql -u root -p < database/02_create_tables.sql
+mysql -u root -p < database/03_insert_data.sql
+```
+
+### 12.2. Implantação do Serviço na VM Ubuntu
+1. Execute o script de preparação não-destrutivo:
+   ```bash
+   bash deploy/setup_ubuntu.sh
+   ```
+2. Configure o arquivo `.env` com `DB_ENGINE=mysql` e as credenciais do banco.
+3. Registre e inicie o serviço `systemd`:
+   ```bash
+   sudo cp deploy/beautyschedule.service /etc/systemd/system/beautyschedule.service
+   sudo systemctl daemon-reload
+   sudo systemctl enable beautyschedule
+   sudo systemctl start beautyschedule
+   ```
+4. *(Opcional)* Configure o proxy reverso Nginx utilizando `deploy/nginx-beautyschedule.conf`.
+
+### 12.3. Documentação Complementar e Pendência do Arquivo XML
+- Consulte [`docs/arquitetura_e_modelo_dados.md`](docs/arquitetura_e_modelo_dados.md) para detalhes da arquitetura e diagrama ER.
+- Consulte [`docs/api_endpoints.md`](docs/api_endpoints.md) para a listagem de todos os endpoints REST.
+- Consulte [`docs/implantacao_ubuntu_e_xml.md`](docs/implantacao_ubuntu_e_xml.md) para instruções detalhadas de implantação Linux e análise sobre a diferença entre a unidade `systemd` (`deploy/beautyschedule.service`) e a proposta de arquivo XML acadêmico (`deploy/beautyschedule-service-proposal.xml`).
