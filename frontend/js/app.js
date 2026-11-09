@@ -126,16 +126,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Carregar Contexto Inicial do Salão
     async function loadSalaoHeader() {
+        const badgeEl = document.getElementById("salao-badge");
+        const horariosUl = document.getElementById("dashboard-horarios-list");
         try {
             const info = await ApiClient.obterSalaoAtual();
-            document.getElementById("salao-badge").textContent = info.salao.nome;
+            badgeEl.textContent = info.salao.nome;
             if (info.operador) {
                 document.getElementById("operador-nome").textContent = info.operador.nome;
                 document.getElementById("operador-cargo").textContent = info.operador.cargo;
             }
 
-            const ul = document.getElementById("dashboard-horarios-list");
-            ul.innerHTML = info.horarios_funcionamento
+            if (!info.horarios_funcionamento || !info.horarios_funcionamento.length) {
+                horariosUl.innerHTML = `<li class="text-muted">Nenhum horário de funcionamento cadastrado.</li>`;
+                return;
+            }
+
+            horariosUl.innerHTML = info.horarios_funcionamento
                 .map((h) => {
                     const intervalo = h.aberto
                         ? `${formatTimeShort(h.hora_abertura)} às ${formatTimeShort(h.hora_fechamento)}`
@@ -147,6 +153,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 })
                 .join("");
         } catch (err) {
+            badgeEl.textContent = "Erro ao carregar salão";
+            document.getElementById("operador-nome").textContent = "Indisponível";
+            horariosUl.innerHTML = `<li class="empty-row">Não foi possível carregar os horários (${escapeHtml(err.message)}).</li>`;
             showToast(err.message, "error");
         }
     }
@@ -211,6 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 1. DASHBOARD
     // =========================================================================
     async function loadDashboard() {
+        const tbody = document.getElementById("dashboard-agendamentos-tbody");
         try {
             const rel = await ApiClient.obterRelatorioResumo();
             const ind = rel.indicadores;
@@ -235,7 +245,6 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("kpi-receita-realizada").textContent =
                 `Concluído: ${formatCurrency(ind.faturamento_realizado)}`;
 
-            const tbody = document.getElementById("dashboard-agendamentos-tbody");
             if (!rel.agendamentos_recentes.length) {
                 tbody.innerHTML = `<tr><td colspan="5" class="empty-row">Nenhum agendamento cadastrado.</td></tr>`;
                 return;
@@ -252,6 +261,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 )
                 .join("");
         } catch (err) {
+            document.getElementById("kpi-agendamentos-ativos").textContent = "—";
+            document.getElementById("kpi-agendamentos-total").textContent = "Indisponível";
+            document.getElementById("kpi-clientes-ativos").textContent = "—";
+            document.getElementById("kpi-clientes-total").textContent = "Indisponível";
+            document.getElementById("kpi-servicos-ativos").textContent = "—";
+            document.getElementById("kpi-servicos-total").textContent = "Indisponível";
+            document.getElementById("kpi-receita-prevista").textContent = "—";
+            document.getElementById("kpi-receita-realizada").textContent = "Falha ao consultar API";
+            tbody.innerHTML = `<tr><td colspan="5" class="empty-row">Não foi possível carregar a movimentação da agenda (${escapeHtml(err.message)}).</td></tr>`;
             showToast(err.message, "error");
         }
     }
@@ -344,6 +362,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
         } catch (err) {
+            document.getElementById("agenda-expediente-banner").textContent =
+                "Falha ao consultar expediente";
+            document.getElementById("agenda-kpi-ativos").textContent = "—";
+            document.getElementById("agenda-kpi-confirmados").textContent = "—";
+            document.getElementById("agenda-kpi-cancelados").textContent = "—";
+            document.getElementById("agenda-kpi-receita").textContent = "—";
+            document.getElementById("agenda-dia-tbody").innerHTML =
+                `<tr><td colspan="7" class="empty-row">Erro ao carregar a agenda (${escapeHtml(err.message)}).</td></tr>`;
+            document.getElementById("agenda-slots-grid").innerHTML =
+                `<p class="text-muted">Não foi possível carregar a grade de horários.</p>`;
             showToast(err.message, "error");
         }
     }
@@ -408,6 +436,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             tbody.innerHTML = lista.map((a) => renderAgendamentoRow(a, false)).join("");
         } catch (err) {
+            document.getElementById("agendamentos-tbody").innerHTML =
+                `<tr><td colspan="9" class="empty-row">Erro ao carregar agendamentos (${escapeHtml(err.message)}).</td></tr>`;
             showToast(err.message, "error");
         }
     }
@@ -581,6 +611,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 )
                 .join("");
         } catch (err) {
+            document.getElementById("clientes-tbody").innerHTML =
+                `<tr><td colspan="7" class="empty-row">Erro ao carregar clientes (${escapeHtml(err.message)}).</td></tr>`;
             showToast(err.message, "error");
         }
     }
@@ -719,6 +751,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 )
                 .join("");
         } catch (err) {
+            document.getElementById("servicos-tbody").innerHTML =
+                `<tr><td colspan="7" class="empty-row">Erro ao carregar serviços (${escapeHtml(err.message)}).</td></tr>`;
             showToast(err.message, "error");
         }
     }
@@ -863,6 +897,17 @@ document.addEventListener("DOMContentLoaded", () => {
             );
             pillsBox.innerHTML = [...statusEntries, ...canalEntries].join("");
         } catch (err) {
+            document.getElementById("rel-total-agendamentos").textContent = "—";
+            document.getElementById("rel-taxa-cancelamento").textContent = "Indisponível";
+            document.getElementById("rel-concluidos-confirmados").textContent = "—";
+            document.getElementById("rel-pendentes").textContent = "Indisponível";
+            document.getElementById("rel-faturamento-realizado").textContent = "—";
+            document.getElementById("rel-faturamento-previsto").textContent = "—";
+            document.getElementById("rel-servicos-tbody").innerHTML =
+                `<tr><td colspan="5" class="empty-row">Erro ao carregar relatório (${escapeHtml(err.message)}).</td></tr>`;
+            document.getElementById("rel-movimentacao-tbody").innerHTML =
+                `<tr><td colspan="6" class="empty-row">Erro ao carregar movimentação (${escapeHtml(err.message)}).</td></tr>`;
+            document.getElementById("rel-canais-status-box").innerHTML = "";
             showToast(err.message, "error");
         }
     }

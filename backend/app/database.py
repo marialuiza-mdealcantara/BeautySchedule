@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import datetime
 import decimal
+import os
 import sqlite3
+import threading
 from contextlib import contextmanager
 from typing import Any, Generator
 
@@ -250,20 +252,32 @@ INSERT INTO agendamentos (
 """
 
 
+_SQLITE_INIT_LOCK = threading.Lock()
+_INITIALIZED_SQLITE_PATHS: set[str] = set()
+
+
 def init_sqlite_db(sqlite_path: str, seed: bool = True) -> None:
     """Inicializa o banco SQLite local/teste com schema e dados iniciais caso vazio."""
-    conn = sqlite3.connect(sqlite_path)
-    try:
-        conn.execute("PRAGMA foreign_keys = ON;")
-        conn.executescript(SQLITE_SCHEMA_AND_SEED)
-        if seed:
-            cur = conn.execute("SELECT COUNT(*) FROM saloes")
-            count = cur.fetchone()[0]
-            if count == 0:
-                conn.executescript(SQLITE_SEED_DATA)
-        conn.commit()
-    finally:
-        conn.close()
+    with _SQLITE_INIT_LOCK:
+        conn = sqlite3.connect(sqlite_path, check_same_thread=False, timeout=15.0)
+        try:
+            conn.execute("PRAGMA foreign_keys = ON;")
+            conn.executescript(SQLITE_SCHEMA_AND_SEED)
+            if seed:
+                cur = conn.execute("SELECT COUNT(*) FROM saloes")
+                count = cur.fetchone()[0]
+                if count == 0:
+                    conn.executescript(SQLITE_SEED_DATA)
+            conn.commit()
+            _INITIALIZED_SQLITE_PATHS.add(os.path.abspath(sqlite_path))
+        finally:
+            conn.close()
+
+
+def _ensure_sqlite_initialized(sqlite_path: str) -> None:
+    abs_path = os.path.abspath(sqlite_path)
+    if abs_path not in _INITIALIZED_SQLITE_PATHS or not os.path.exists(abs_path):
+        init_sqlite_db(sqlite_path, seed=True)
 
 
 @contextmanager
@@ -286,8 +300,10 @@ def get_db_connection() -> Generator[DatabaseConnection, None, None]:
         finally:
             raw_conn.close()
     else:
-        init_sqlite_db(settings.sqlite_path, seed=True)
-        raw_conn = sqlite3.connect(settings.sqlite_path)
+        _ensure_sqlite_initialized(settings.sqlite_path)
+        raw_conn = sqlite3.connect(
+            settings.sqlite_path, check_same_thread=False, timeout=15.0
+        )
         raw_conn.row_factory = sqlite3.Row
         raw_conn.execute("PRAGMA foreign_keys = ON;")
         try:

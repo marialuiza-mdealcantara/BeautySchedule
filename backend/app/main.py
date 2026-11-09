@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sqlite3
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+import pymysql
 
 from backend.app.config import get_settings
 from backend.app.exceptions import DomainError
@@ -47,6 +49,21 @@ async def domain_error_handler(_request: Request, exc: DomainError) -> JSONRespo
             "erro": True,
             "mensagem": exc.message,
             "detail": exc.message,
+        },
+    )
+
+
+@app.exception_handler(sqlite3.Error)
+@app.exception_handler(pymysql.MySQLError)
+async def database_error_handler(_request: Request, exc: Exception) -> JSONResponse:
+    """Garante retorno JSON padronizado caso ocorra falha de comunicação ou persistência."""
+    msg = "Erro de comunicação com o banco de dados."
+    return JSONResponse(
+        status_code=500,
+        content={
+            "erro": True,
+            "mensagem": msg,
+            "detail": f"{msg} ({exc.__class__.__name__})",
         },
     )
 
