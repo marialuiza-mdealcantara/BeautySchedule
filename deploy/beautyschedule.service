@@ -3,8 +3,14 @@
 # NOTA IMPORTANTE: Este é um arquivo de unidade systemd (.service no formato INI
 # nativo do Linux) e NÃO se confunde com o arquivo XML acadêmico.
 #
-# Instalação na VM Ubuntu:
-#   sudo cp deploy/beautyschedule.service /etc/systemd/system/beautyschedule.service
+# O script `deploy/setup_ubuntu.sh` ajusta automaticamente `User`, `Group` e
+# `WorkingDirectory` para o usuário real da VM Ubuntu antes da instalação.
+#
+# Caso instale manualmente sem o script, substitua __APP_USER__, __APP_GROUP__
+# e /opt/beautyschedule pelo usuário/grupo e diretório reais da sua VM:
+#   sudo sed -e "s/__APP_USER__/$(id -un)/g" \
+#            -e "s/__APP_GROUP__/$(id -gn)/g" \
+#            deploy/beautyschedule.service | sudo tee /etc/systemd/system/beautyschedule.service > /dev/null
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable beautyschedule
 #   sudo systemctl start beautyschedule
@@ -18,8 +24,8 @@ Wants=mysql.service
 
 [Service]
 Type=simple
-User=ubuntu
-Group=www-data
+User=__APP_USER__
+Group=__APP_GROUP__
 WorkingDirectory=/opt/beautyschedule
 EnvironmentFile=/opt/beautyschedule/.env
 ExecStart=/opt/beautyschedule/.venv/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --workers 2

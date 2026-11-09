@@ -161,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
         state.clientesAtivos = clientes.filter((c) => c.ativo);
         state.servicosAtivos = servicos.filter((s) => s.ativo);
 
-        // Select de filtro de agendamentos
+        // Select de filtro de agendamentos (Cliente e Serviço)
         const filtroCli = document.getElementById("filtro-ag-cliente");
         const currentVal = filtroCli.value;
         filtroCli.innerHTML =
@@ -173,6 +173,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 )
                 .join("");
         filtroCli.value = currentVal;
+
+        const filtroSrv = document.getElementById("filtro-ag-servico");
+        if (filtroSrv) {
+            const currentSrvVal = filtroSrv.value;
+            filtroSrv.innerHTML =
+                `<option value="">Todos os serviços</option>` +
+                servicos
+                    .map(
+                        (s) =>
+                            `<option value="${s.id}">${escapeHtml(s.nome)} (${s.duracao_minutos} min)</option>`
+                    )
+                    .join("");
+            filtroSrv.value = currentSrvVal;
+        }
 
         // Selects do modal de novo agendamento e reagendamento
         const agCli = document.getElementById("ag-cliente");
@@ -383,6 +397,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const filtros = {
                 data: document.getElementById("filtro-ag-data").value,
                 cliente_id: document.getElementById("filtro-ag-cliente").value,
+                servico_id: document.getElementById("filtro-ag-servico")?.value || "",
                 status: document.getElementById("filtro-ag-status").value,
             };
             const lista = await ApiClient.listarAgendamentos(filtros);
@@ -403,6 +418,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-limpar-agendamentos").addEventListener("click", () => {
         document.getElementById("filtro-ag-data").value = "";
         document.getElementById("filtro-ag-cliente").value = "";
+        const filtroSrv = document.getElementById("filtro-ag-servico");
+        if (filtroSrv) filtroSrv.value = "";
         document.getElementById("filtro-ag-status").value = "";
         loadAgendamentos();
     });
@@ -470,18 +487,29 @@ document.addEventListener("DOMContentLoaded", () => {
                 showToast(`Atendimento #${id} marcado como concluído!`);
                 switchView(state.currentView);
             } else if (action === "cancelar") {
-                await ApiClient.cancelarAgendamento(id, "Cancelado pela recepção");
+                const motivo = window.prompt(
+                    `Confirmar cancelamento do agendamento #${id}?\nInforme o motivo (ou clique em Cancelar para abortar):`,
+                    "Cancelado pela recepção"
+                );
+                if (motivo === null) return;
+                await ApiClient.cancelarAgendamento(id, motivo.trim());
                 showToast(`Agendamento #${id} cancelado e horário liberado.`);
                 switchView(state.currentView);
             } else if (action === "reagendar") {
                 await refreshSelectOptions();
-                const lista = await ApiClient.listarAgendamentos();
-                const ag = lista.find((item) => item.id === id);
+                const ag = await ApiClient.obterAgendamento(id);
                 if (!ag) return;
+                const reagSelect = document.getElementById("reag-servico");
+                if (!state.servicosAtivos.some((s) => s.id === ag.servico_id)) {
+                    reagSelect.insertAdjacentHTML(
+                        "beforeend",
+                        `<option value="${ag.servico_id}">${escapeHtml(ag.servico_nome)} (${ag.servico_duracao_minutos} min — atual)</option>`
+                    );
+                }
                 document.getElementById("reag-id").value = ag.id;
                 document.getElementById("reag-resumo").textContent =
                     `Cliente: ${ag.cliente_nome} | Atual: ${formatDateBR(ag.data)} às ${formatTimeShort(ag.hora_inicio)}`;
-                document.getElementById("reag-servico").value = ag.servico_id;
+                reagSelect.value = ag.servico_id;
                 document.getElementById("reag-data").value = ag.data;
                 document.getElementById("reag-hora").value = formatTimeShort(ag.hora_inicio);
                 document.getElementById("reag-observacoes").value = ag.observacoes || "";

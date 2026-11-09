@@ -42,6 +42,7 @@ Desktop.ini
 
 # Logs e arquivos temporários
 *.log
+*.rendered
 logs/
 tmp/
 temp/

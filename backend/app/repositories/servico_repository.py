@@ -109,7 +109,8 @@ class ServicoRepository:
                 descricao = %s,
                 duracao_minutos = %s,
                 preco = %s,
-                ativo = %s
+                ativo = %s,
+                data_atualizacao = CURRENT_TIMESTAMP
             WHERE id = %s AND salao_id = %s
             """,
             (
@@ -130,7 +131,8 @@ class ServicoRepository:
         self.db.execute(
             """
             UPDATE servicos
-            SET ativo = %s
+            SET ativo = %s,
+                data_atualizacao = CURRENT_TIMESTAMP
             WHERE id = %s AND salao_id = %s
             """,
             (1 if ativo else 0, servico_id, salao_id),

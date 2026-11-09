@@ -96,6 +96,7 @@ const ApiClient = (() => {
         // Agendamentos e Agenda
         listarAgendamentos: (filtros = {}) =>
             request(`/api/agendamentos${buildQuery(filtros)}`),
+        obterAgendamento: (id) => request(`/api/agendamentos/${id}`),
         criarAgendamento: (payload) =>
             request("/api/agendamentos", {
                 method: "POST",

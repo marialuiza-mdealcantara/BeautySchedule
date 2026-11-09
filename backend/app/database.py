@@ -86,13 +86,16 @@ class DatabaseConnection:
             cur.close()
 
     def execute(self, query: str, params: tuple[Any, ...] = ()) -> int:
-        """Executa INSERT/UPDATE/DELETE e retorna o lastrowid (ou rowcount se aplicável)."""
+        """Executa INSERT/UPDATE/DELETE e retorna o lastrowid (INSERT) ou rowcount."""
         sql = self._prepare_query(query)
+        is_insert = sql.lstrip().upper().startswith("INSERT")
         cur = self._conn.cursor()
         try:
             cur.execute(sql, params)
             self._conn.commit()
-            return int(cur.lastrowid or cur.rowcount or 0)
+            if is_insert:
+                return int(cur.lastrowid or 0)
+            return int(cur.rowcount or 0)
         except Exception:
             self._conn.rollback()
             raise
@@ -164,8 +167,9 @@ CREATE TABLE IF NOT EXISTS horarios_funcionamento (
     hora_abertura TEXT NOT NULL,
     hora_fechamento TEXT NOT NULL,
     aberto INTEGER NOT NULL DEFAULT 1,
+    CHECK (aberto = 0 OR hora_fechamento > hora_abertura),
     UNIQUE (salao_id, dia_semana),
-    FOREIGN KEY (salao_id) REFERENCES saloes (id)
+    FOREIGN KEY (salao_id) REFERENCES saloes (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS agendamentos (
@@ -183,10 +187,11 @@ CREATE TABLE IF NOT EXISTS agendamentos (
     valor_cobrado REAL NOT NULL CHECK (valor_cobrado >= 0),
     data_cadastro TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     data_atualizacao TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
-    FOREIGN KEY (salao_id) REFERENCES saloes (id),
-    FOREIGN KEY (cliente_id, salao_id) REFERENCES clientes (id, salao_id),
-    FOREIGN KEY (servico_id, salao_id) REFERENCES servicos (id, salao_id),
-    FOREIGN KEY (usuario_id, salao_id) REFERENCES usuarios (id, salao_id)
+    CHECK (hora_fim > hora_inicio),
+    FOREIGN KEY (salao_id) REFERENCES saloes (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (cliente_id, salao_id) REFERENCES clientes (id, salao_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (servico_id, salao_id) REFERENCES servicos (id, salao_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (usuario_id, salao_id) REFERENCES usuarios (id, salao_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 """
 

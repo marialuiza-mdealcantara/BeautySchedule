@@ -16,6 +16,10 @@ from backend.app.routers import agenda, agendamentos, clientes, relatorios, sala
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
 
+_initial_settings = get_settings()
+_cors_origins = list(_initial_settings.cors_origins)
+_allow_credentials = "*" not in _cors_origins
+
 app = FastAPI(
     title="BeautySchedule API",
     description=(
@@ -27,9 +31,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=_allow_credentials,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -57,6 +61,7 @@ def health_check() -> dict[str, Any]:
         "versao": "1.0.0",
         "ambiente": settings.app_env,
         "db_engine": settings.db_engine,
+        "cors_origins": list(settings.cors_origins),
     }
 
 

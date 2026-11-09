@@ -66,13 +66,12 @@ DEFAULT_USUARIO_ID=1
 
 ### 1.4. Configuração do Serviço no Linux (`systemd`)
 
-Para manter a API FastAPI em execução contínua e iniciar automaticamente no boot da VM Ubuntu, utilize a unidade `systemd` fornecida em `deploy/beautyschedule.service`:
+Para manter a API FastAPI em execução contínua e iniciar automaticamente no boot da VM Ubuntu, o script `deploy/setup_ubuntu.sh` gera automaticamente o arquivo `/opt/beautyschedule/deploy/beautyschedule.service.rendered` substituindo `__APP_USER__` e `__APP_GROUP__` pelo usuário e grupo reais da VM (sem presumir que o usuário se chama `ubuntu`):
 
 ```bash
-sudo cp deploy/beautyschedule.service /etc/systemd/system/beautyschedule.service
+sudo cp /opt/beautyschedule/deploy/beautyschedule.service.rendered /etc/systemd/system/beautyschedule.service
 sudo systemctl daemon-reload
-sudo systemctl enable beautyschedule
-sudo systemctl start beautyschedule
+sudo systemctl enable --now beautyschedule
 sudo systemctl status beautyschedule
 ```
 

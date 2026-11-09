@@ -282,6 +282,10 @@ class AgendamentoService:
             raise BusinessRuleError(
                 "Agendamentos cancelados não podem mudar de status. Crie um novo agendamento."
             )
+        if atual["status"] == "CONCLUIDO":
+            raise BusinessRuleError(
+                "Atendimentos já concluídos não podem ter o status alterado."
+            )
 
         obs = (
             payload.observacoes

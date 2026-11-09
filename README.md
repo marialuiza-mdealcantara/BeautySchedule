@@ -219,10 +219,11 @@ Conforme escopo definido para a disciplina, não fazem parte desta versão:
    ```bash
    cp .env.example .env
    ```
-2. Para rodar **localmente de imediato** (sem precisar de um servidor MySQL local ativo), defina `DB_ENGINE=sqlite` no `.env` (ou mantenha o padrão local). O sistema criará e populará automaticamente um banco local de demonstração.
-3. Na **VM Ubuntu Linux com MySQL 8.4**, configure no `.env`:
+2. Para rodar **localmente de imediato** (sem precisar de um servidor MySQL local ativo), o `.env.example` já traz por padrão `DB_ENGINE=sqlite` e `CORS_ORIGINS=http://127.0.0.1:8000,http://localhost:8000`. O sistema criará e populará automaticamente um banco local de demonstração.
+3. Na **VM Ubuntu Linux com MySQL 8.4**, edite o `.env` ajustando `DB_ENGINE=mysql`, `CORS_ORIGINS` (se aplicável) e as credenciais reais:
    ```env
    APP_ENV=production
+   CORS_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
    DB_ENGINE=mysql
    DB_HOST=127.0.0.1
    DB_PORT=3306
@@ -281,17 +282,16 @@ mysql -u root -p < database/03_insert_data.sql
 ```
 
 ### 12.2. Implantação do Serviço na VM Ubuntu
-1. Execute o script de preparação não-destrutivo:
+1. Execute o script de preparação não-destrutivo (ele sincroniza os arquivos para `/opt/beautyschedule`, cria `.venv` e `.env` nesse diretório e gera a unidade `systemd` já ajustada para o usuário real da VM):
    ```bash
    bash deploy/setup_ubuntu.sh
    ```
-2. Configure o arquivo `.env` com `DB_ENGINE=mysql` e as credenciais do banco.
-3. Registre e inicie o serviço `systemd`:
+2. Configure o arquivo `/opt/beautyschedule/.env` com `DB_ENGINE=mysql` e as credenciais do banco.
+3. Registre e inicie o serviço `systemd` usando o arquivo renderizado para o usuário da VM:
    ```bash
-   sudo cp deploy/beautyschedule.service /etc/systemd/system/beautyschedule.service
+   sudo cp /opt/beautyschedule/deploy/beautyschedule.service.rendered /etc/systemd/system/beautyschedule.service
    sudo systemctl daemon-reload
-   sudo systemctl enable beautyschedule
-   sudo systemctl start beautyschedule
+   sudo systemctl enable --now beautyschedule
    ```
 4. *(Opcional)* Configure o proxy reverso Nginx utilizando `deploy/nginx-beautyschedule.conf`.
 

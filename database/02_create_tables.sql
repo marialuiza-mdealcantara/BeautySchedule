@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS agendamentos (
     CONSTRAINT fk_agendamentos_servico_salao FOREIGN KEY (servico_id, salao_id)
         REFERENCES servicos (id, salao_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT fk_agendamentos_usuario_salao FOREIGN KEY (usuario_id, salao_id)
-        REFERENCES usuarios (id, salao_id) ON DELETE SET NULL ON UPDATE CASCADE,
+        REFERENCES usuarios (id, salao_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT chk_agendamentos_status CHECK (status IN ('AGENDADO', 'CONFIRMADO', 'CONCLUIDO', 'CANCELADO')),
     CONSTRAINT chk_agendamentos_horario CHECK (hora_fim > hora_inicio),
     CONSTRAINT chk_agendamentos_valor CHECK (valor_cobrado >= 0),

@@ -176,7 +176,8 @@ class AgendamentoRepository:
                 hora_inicio = %s,
                 hora_fim = %s,
                 valor_cobrado = %s,
-                observacoes = %s
+                observacoes = %s,
+                data_atualizacao = CURRENT_TIMESTAMP
             WHERE id = %s AND salao_id = %s
             """,
             (
@@ -204,7 +205,8 @@ class AgendamentoRepository:
                 """
                 UPDATE agendamentos
                 SET status = %s,
-                    observacoes = %s
+                    observacoes = %s,
+                    data_atualizacao = CURRENT_TIMESTAMP
                 WHERE id = %s AND salao_id = %s
                 """,
                 (status, observacoes, agendamento_id, salao_id),
@@ -213,7 +215,8 @@ class AgendamentoRepository:
             self.db.execute(
                 """
                 UPDATE agendamentos
-                SET status = %s
+                SET status = %s,
+                    data_atualizacao = CURRENT_TIMESTAMP
                 WHERE id = %s AND salao_id = %s
                 """,
                 (status, agendamento_id, salao_id),

@@ -186,3 +186,30 @@ def test_impedir_agendamento_para_cliente_ou_servico_inativo(client: TestClient)
         },
     )
     assert res_srv_inativo.status_code == 422
+
+
+def test_impedir_alteracao_status_de_agendamento_concluido(client: TestClient) -> None:
+    """Garante que um agendamento CONCLUIDO (#3) não pode voltar para AGENDADO ou CONFIRMADO."""
+    res_agendado = client.patch(
+        "/api/agendamentos/3/status",
+        json={"status": "AGENDADO"},
+    )
+    assert res_agendado.status_code == 422
+    assert "concluídos" in res_agendado.json()["mensagem"].lower()
+
+    res_confirmado = client.patch(
+        "/api/agendamentos/3/status",
+        json={"status": "CONFIRMADO"},
+    )
+    assert res_confirmado.status_code == 422
+    assert "concluídos" in res_confirmado.json()["mensagem"].lower()
+
+
+def test_filtrar_agendamentos_por_servico(client: TestClient) -> None:
+    """Valida o filtro de agendamentos por servico_id."""
+    res = client.get("/api/agendamentos", params={"servico_id": 1})
+    assert res.status_code == 200
+    lista = res.json()
+    assert len(lista) == 1
+    assert lista[0]["servico_id"] == 1
+

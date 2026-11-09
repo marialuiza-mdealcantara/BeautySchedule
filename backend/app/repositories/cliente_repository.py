@@ -95,7 +95,8 @@ class ClienteRepository:
                 telefone = %s,
                 email = %s,
                 observacoes = %s,
-                ativo = %s
+                ativo = %s,
+                data_atualizacao = CURRENT_TIMESTAMP
             WHERE id = %s AND salao_id = %s
             """,
             (nome, telefone, email, observacoes, 1 if ativo else 0, cliente_id, salao_id),
@@ -108,7 +109,8 @@ class ClienteRepository:
         self.db.execute(
             """
             UPDATE clientes
-            SET ativo = %s
+            SET ativo = %s,
+                data_atualizacao = CURRENT_TIMESTAMP
             WHERE id = %s AND salao_id = %s
             """,
             (1 if ativo else 0, cliente_id, salao_id),
